@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidgey Jump - GTA Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #0c2d48, #145da0);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background-color: #0a1929;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background-color: #0a1929;
+        }
+        
+        .game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            color: white;
+            font-weight: bold;
+            z-index: 10;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px black;
+        }
+        
+        .score-container, .high-score-container {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            border: 1px solid #3498db;
+        }
+        
+        .jetpack-fuel {
+            position: absolute;
+            top: 70px;
+            left: 15px;
+            width: 150px;
+            height: 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #3498db;
+            z-index: 10;
+        }
+        
+        .fuel-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to right, #00ff00, #ffcc00, #ff0000);
+            transition: width 0.3s;
+        }
+        
+        .fuel-label {
+            position: absolute;
+            top: 50px;
+            left: 15px;
+            color: white;
+            font-size: 12px;
+            z-index: 10;
+            text-shadow: 1px 1px 2px black;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            z-index: 20;
+            display: none;
+            width: 80%;
+            border: 2px solid #e74c3c;
+            color: white;
+        }
+        
+        .game-over h2 {
+            color: #e74c3c;
+            margin-bottom: 15px;
+            font-size: 28px;
+            text-transform: uppercase;
+        }
+        
+        .game-over p {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .restart-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .restart-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+            z-index: 10;
+        }
+        
+        .control-btn {
+            background-color: rgba(52, 152, 219, 0.9);
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            transition: transform 0.1s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+            background-color: #2980b9;
+        }
+        
+        .instructions {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            color: white;
+            border: 1px solid #3498db;
+            line-height: 1.4;
+        }
+        
+        .title {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #e74c3c;
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 10;
+            text-align: center;
+            width: 100%;
+            font-family: 'Impact', sans-serif;
+            letter-spacing: 1px;
+        }
+        
+        .title span {
+            color: #3498db;
+        }
+        
+        .powerup-indicator {
+            position: absolute;
+            top: 100px;
+            right: 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 10px;
+            color: white;
+            font-size: 12px;
+            border: 1px solid #3498db;
+            display: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="title"><span>SIDGEY</span> JUMP</div>
+        <div class="game-ui">
+            <div class="score-container">Очки: <span id="score">0</span></div>
+            <div class="high-score-container">Рекорд: <span id="high-score">0</span></div>
+        </div>
+        
+        <div class="fuel-label">Реактивный ранец:</div>
+        <div class="jetpack-fuel">
+            <div class="fuel-bar" id="fuel-bar"></div>
+        </div>
+        
+        <div class="powerup-indicator" id="powerup-indicator"></div>
+        
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        
+        <div class="controls">
+            <button class="control-btn" id="left-btn">←</button>
+            <button class="control-btn" id="right-btn">→</button>
+            <button class="control-btn" id="boost-btn" style="background-color: #e74c3c;">▲</button>
+        </div>
+        
+        <div class="instructions">
+            ← → - движение | ▲ - реактивный ранец | Красные здания - полиция | Оранжевые - бустер | Жёлтые - пружина
+        </div>
+        
+        <div class="game-over" id="game-over-screen">
+            <h2>Арестован!</h2>
+            <p>Полиция поймала Сиджея!</p>
+            <p>Ваш счет: <span id="final-score">0</span></p>
+            <p>Рекорд: <span id="final-high-score">0</span></p>
+            <button class="restart-btn" id="restart-btn">Попробовать снова</button>
+        </div>
+    </div>
+
+    <script>
+        // Получаем элементы DOM
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('high-score');
+        const finalScoreElement = document.getElementById('final-score');
+        const finalHighScoreElement = document.getElementById('final-high-score');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const restartBtn = document.getElementById('restart-btn');
+        const leftBtn = document.getElementById('left-btn');
+        const rightBtn = document.getElementById('right-btn');
+        const boostBtn = document.getElementById('boost-btn');
+        const fuelBar = document.getElementById('fuel-bar');
+        const powerupIndicator = document.getElementById('powerup-indicator');
+        
+        // Загружаем изображения
+        const sidgeyImg = new Image();
+        sidgeyImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA0MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMjQ0NzZBIiByeD0iNSIvPgo8cmVjdCB4PSI1IiB5PSIxMCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzQ5OEJCIiByeD0iMyIvPgo8Y2lyY2xlIGN4PSIxNSIgY3k9IjI1IiByPSIzIiBmaWxsPSIjRkZGRkZGIi8+CjxjaXJjbGUgY3g9IjI1IiBjeT0iMjUiIHI9IjMiIGZpbGw9IiNGRkZGRkUiLz4KPHJlY3QgeD0iMTQiIHk9IjM1IiB3aWR0aD0iMTIiIGhlaWdodD0iMyIgZmlsbD0iI0ZGRkZGRSIgcng9IjEuNSIvPgo8cmVjdCB4PSIxNSIgeT0iNDgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMiIgZmlsbD0iIzFFODNENCIgcng9IjIiLz4KPHBhdGggZD0iTTIwIDQ4VjYwIiBzdHJva2U9IiNGRkNDMDAiIHN0cm9rZS13aWR0aD0iMyIvPgo8cGF0aCBkPSJNMTUgNDhMMjAgNTBMMjUgNDgiIHN0cm9rZT0iI0ZGOTgwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo=';
+        
+        const policeImg = new Image();
+        policeImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iOCIgZmlsbD0iIzM0OTg4QiIvPgo8Y2lyY2xlIGN4PSIxMCIgY3k9IjgiIHI9IjIiIGZpbGw9IiNGRkZGRkUiLz4KPHBhdGggZD0iTTggMTJMMTIgMTJMMTAgMTYiIHN0cm9rZT0iI0ZGRkZGRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiLz4KPHJlY3QgeD0iNCIgeT0iNCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjMiIGZpbGw9IiNGRkZGRkUiIHJ4PSIxIi8+Cjwvc3ZnPgo=';
+        
+        const boosterImg = new Image();
+        boosterImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iOCIgZmlsbD0iI0ZGOTgwMCIvPgo8cGF0aCBkPSJNMTAgNkwxMiAxMEwxMCAxNEw4IDEwTDEwIDZaIiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPgo=';
+        
+        const springImg = new Image();
+        springImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iMiIgeT0iNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjEyIiBmaWxsPSIjRkZGRjAwIiByeD0iMiIvPgo8cmVjdCB4PSI0IiB5PSI3IiB3aWR0aD0iMTIiIGhlaWdodD0iNiIgZmlsbD0iI0ZGQ0MwMCIgcng9IjEiLz4KPHBhdGggZD0iTTUgMTBMMTUgMTAiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSIyIDIiLz4KPC9zdmc+Cg==';
+        
+        // Игровые переменные
+        let player = {
+            x: canvas.width / 2 - 20,
+            y: canvas.height - 100,
+            width: 40,
+            height: 60,
+            velocityX: 0,
+            velocityY: 0,
+            jumping: false,
+            color: '#3498db',
+            jetpackActive: false,
+            jetpackFuel: 100,
+            boosterActive: false,
+            boosterTime: 0
+        };
+        
+        let buildings = [];
+        let score = 0;
+        let highScore = localStorage.getItem('sidgeyJumpHighScore') || 0;
+        let gameRunning = true;
+        let keys = {};
+        let scrollOffset = 0;
+        let buildingCount = 12;
+        let gravity = 0.3;
+        let jumpForce = -10;
+        
+        // Типы зданий
+        const BUILDING_TYPES = {
+            NORMAL: {color: '#2c3e50', height: 15, width: 80},
+            POLICE: {color: '#e74c3c', height: 15, width: 80},
+            BOOSTER: {color: '#e67e22', height: 15, width: 80},
+            SPRING: {color: '#f1c40f', height: 15, width: 80}
+        };
+        
+        // Устанавливаем рекорд
+        highScoreElement.textContent = highScore;
+        
+        // Создаем здания
+        function createBuildings() {
+            buildings = [];
+            
+            // Первое здание под игроком
+            buildings.push({
+                x: canvas.width / 2 - 40,
+                y: canvas.height - 50,
+                width: 80,
+                height: 15,
+                type: 'NORMAL'
+            });
+            
+            // Создаем остальные здания
+            for (let i = 0; i < buildingCount; i++) {
+                let type;
+                const rand = Math.random();
+                
+                if (rand < 0.1) {
+                    type = 'POLICE'; // 10% полиция
+                } else if (rand < 0.2) {
+                    type = 'BOOSTER'; // 10% бустер
+                } else if (rand < 0.3) {
+                    type = 'SPRING'; // 10% пружина
+                } else {
+                    type = 'NORMAL'; // 70% обычные
+                }
+                
+                buildings.push({
+                    x: Math.random() * (canvas.width - 80),
+                    y: Math.random() * canvas.height / 2,
+                    width: 80,
+                    height: 15,
+                    type: type
+                });
+            }
+        }
+        
+        // Обработка нажатий клавиш
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            
+            if (e.code === 'Space') {
+                activateJetpack();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+            
+            if (e.code === 'Space') {
+                deactivateJetpack();
+            }
+        });
+        
+        // Обработка нажатий кнопок на экране
+        leftBtn.addEventListener('mousedown', () => {
+            keys['ArrowLeft'] = true;
+            keys['a'] = true;
+        });
+        
+        leftBtn.addEventListener('mouseup', () => {
+            keys['ArrowLeft'] = false;
+            keys['a'] = false;
+        });
+        
+        leftBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys['ArrowLeft'] = true;
+            keys['a'] = true;
+        });
+        
+        leftBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys['ArrowLeft'] = false;
+            keys['a'] = false;
+        });
+        
+        rightBtn.addEventListener('mousedown', () => {
+            keys['ArrowRight'] = true;
+            keys['d'] = true;
+        });
+        
+        rightBtn.addEventListener('mouseup', () => {
+            keys['ArrowRight'] = false;
+            keys['d'] = false;
+        });
+        
+        rightBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys['ArrowRight'] = true;
+            keys['d'] = true;
+        });
+        
+        rightBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys['ArrowRight'] = false;
+            keys['d'] = false;
+        });
+        
+        boostBtn.addEventListener('mousedown', () => {
+            activateJetpack();
+        });
+        
+        boostBtn.addEventListener('mouseup', () => {
+            deactivateJetpack();
+        });
+        
+        boostBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            activateJetpack();
+        });
+        
+        boostBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            deactivateJetpack();
+        });
+        
+        // Активация реактивного ранца
+        function activateJetpack() {
+            if (player.jetpackFuel > 0) {
+                player.jetpackActive = true;
+            }
+        }
+        
+        // Деактивация реактивного ранца
+        function deactivateJetpack() {
+            player.jetpackActive = false;
+        }
+        
+        // Обновление игры
+        function update() {
+            if (!gameRunning) return;
+            
+            // Управление игроком
+            player.velocityX = 0;
+            if (keys['ArrowLeft'] || keys['a']) {
+                player.velocityX = -6;
+            }
+            if (keys['ArrowRight'] || keys['d']) {
+                player.velocityX = 6;
+            }
+            
+            // Реактивный ранец
+            if (player.jetpackActive && player.jetpackFuel > 0) {
+                player.velocityY = -8;
+                player.jetpackFuel -= 0.8;
+                
+                // Ограничиваем топливо
+                if (player.jetpackFuel < 0) {
+                    player.jetpackFuel = 0;
+                    player.jetpackActive = false;
+                }
+                
+                // Обновляем полоску топлива
+                fuelBar.style.width = player.jetpackFuel + '%';
+            } else {
+                // Применяем гравитацию
+                player.velocityY += gravity;
+            }
+            
+            // Бустер ускоряет игрока
+            if (player.boosterActive) {
+                player.boosterTime--;
+                if (player.boosterTime <= 0) {
+                    player.boosterActive = false;
+                    powerupIndicator.style.display = 'none';
+                } else {
+                    player.velocityY = -12;
+                }
+            }
+            
+            // Обновляем позицию игрока
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+            
+            // Ограничиваем движение игрока по горизонтали
+            if (player.x < -player.width) player.x = canvas.width;
+            if (player.x > canvas.width) player.x = -player.width;
+            
+            // Проверяем столкновение со зданиями
+            for (let i = 0; i < buildings.length; i++) {
+                let building = buildings[i];
+                
+                if (
+                    player.velocityY > 0 &&
+                    player.x < building.x + building.width &&
+                    player.x + player.width > building.x &&
+                    player.y + player.height > building.y &&
+                    player.y + player.height < building.y + building.height + 10
+                ) {
+                    player.jumping = false;
+                    
+                    // Обработка разных типов зданий
+                    switch(building.type) {
+                        case 'NORMAL':
+                            player.velocityY = jumpForce;
+                            break;
+                            
+                        case 'POLICE':
+                            // Полиция арестовывает игрока
+                            gameOver();
+                            break;
+                            
+                        case 'BOOSTER':
+                            // Бустер дает ускорение
+                            player.boosterActive = true;
+                            player.boosterTime = 60; // 1 секунда при 60 FPS
+                            player.velocityY = -15;
+                            powerupIndicator.textContent = "БУСТЕР АКТИВЕН!";
+                            powerupIndicator.style.display = 'block';
+                            powerupIndicator.style.backgroundColor = 'rgba(230, 126, 34, 0.9)';
+                            break;
+                            
+                        case 'SPRING':
+                            // Пружина дает высокий прыжок
+                            player.velocityY = -18;
+                            break;
+                    }
+                    
+                    // Если это не полицейское здание, оно может исчезнуть
+                    if (building.type !== 'POLICE' && Math.random() < 0.3) {
+                        buildings.splice(i, 1);
+                        i--;
+                        
+                        // Добавляем новое здание сверху
+                        let newType;
+                        const rand = Math.random();
+                        
+                        if (rand < 0.1) {
+                            newType = 'POLICE';
+                        } else if (rand < 0.2) {
+                            newType = 'BOOSTER';
+                        } else if (rand < 0.3) {
+                            newType = 'SPRING';
+                        } else {
+                            newType = 'NORMAL';
+                        }
+                        
+                        buildings.push({
+                            x: Math.random() * (canvas.width - 80),
+                            y: -scrollOffset - 100,
+                            width: 80,
+                            height: 15,
+                            type: newType
+                        });
+                    }
+                }
+            }
+            
+            // Прокрутка мира вниз, когда игрок поднимается
+            if (player.y < canvas.height / 2 && player.velocityY < 0) {
+                scrollOffset += -player.velocityY;
+                
+                // Перемещаем здания вниз
+                for (let i = 0; i < buildings.length; i++) {
+                    buildings[i].y += -player.velocityY;
+                    
+                    // Если здание ушло за нижний край экрана, перемещаем его наверх
+                    if (buildings[i].y > canvas.height) {
+                        buildings[i].y = -scrollOffset - 100;
+                        buildings[i].x = Math.random() * (canvas.width - 80);
+                        
+                        // Меняем тип здания с некоторой вероятностью
+                        if (Math.random() < 0.3) {
+                            const rand = Math.random();
+                            if (rand < 0.1) {
+                                buildings[i].type = 'POLICE';
+                            } else if (rand < 0.2) {
+                                buildings[i].type = 'BOOSTER';
+                            } else if (rand < 0.3) {
+                                buildings[i].type = 'SPRING';
+                            } else {
+                                buildings[i].type = 'NORMAL';
+                            }
+                        }
+                        
+                        // Добавляем очки за каждое пройденное здание
+                        score += 10;
+                        scoreElement.textContent = score;
+                        
+                        // Восстанавливаем немного топлива
+                        player.jetpackFuel = Math.min(100, player.jetpackFuel + 5);
+                        fuelBar.style.width = player.jetpackFuel + '%';
+                    }
+                }
+                
+                // Добавляем очки за высоту
+                score += Math.round(-player.velocityY / 2);
+                scoreElement.textContent = score;
+            }
+            
+            // Проверяем, упал ли игрок
+            if (player.y > canvas.height) {
+                gameOver();
+            }
+            
+            // Обновляем рекорд
+            if (score > highScore) {
+                highScore = score;
+                highScoreElement.textContent = highScore;
+                localStorage.setItem('sidgeyJumpHighScore', highScore);
+            }
+        }
+        
+        // Отрисовка игры
+        function draw() {
+            // Очищаем канвас
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Рисуем ночное небо
+            ctx.fillStyle = '#0a1929';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Рисуем звезды
+            drawStars();
+            
+            // Рисуем здания
+            for (let building of buildings) {
+                // Основа здания
+                ctx.fillStyle = BUILDING_TYPES[building.type].color;
+                ctx.fillRect(building.x, building.y, building.width, building.height);
+                
+                // Окна здания
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                for (let i = 0; i < 5; i++) {
+                    ctx.fillRect(building.x + 5 + i * 15, building.y - 20, 8, 20);
+                }
+                
+                // Добавляем иконку в зависимости от типа здания
+                if (building.type === 'POLICE') {
+                    ctx.drawImage(policeImg, building.x + building.width/2 - 10, building.y - 25, 20, 20);
+                } else if (building.type === 'BOOSTER') {
+                    ctx.drawImage(boosterImg, building.x + building.width/2 - 10, building.y - 25, 20, 20);
+                } else if (building.type === 'SPRING') {
+                    ctx.drawImage(springImg, building.x + building.width/2 - 10, building.y - 25, 20, 20);
+                }
+                
+                // Добавляем тень под зданием
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(building.x, building.y + building.height, building.width, 5);
+            }
+            
+            // Рисуем реактивный ранец (огненный след)
+            if (player.jetpackActive || player.boosterActive) {
+                // Огонь реактивного ранца
+                for (let i = 0; i < 5; i++) {
+                    const fireX = player.x + player.width/2 + (Math.random() - 0.5) * 10;
+                    const fireY = player.y + player.height + Math.random() * 15;
+                    const fireSize = 5 + Math.random() * 10;
+                    
+                    // Градиент огня
+                    const gradient = ctx.createRadialGradient(
+                        fireX, fireY, 0,
+                        fireX, fireY, fireSize
+                    );
+                    
+                    if (player.boosterActive) {
+                        gradient.addColorStop(0, '#FFFF00');
+                        gradient.addColorStop(0.5, '#FFA500');
+                        gradient.addColorStop(1, '#FF4500');
+                    } else {
+                        gradient.addColorStop(0, '#FF4500');
+                        gradient.addColorStop(0.5, '#FF0000');
+                        gradient.addColorStop(1, '#8B0000');
+                    }
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(fireX, fireY, fireSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Рисуем Сиджея
+            ctx.drawImage(sidgeyImg, player.x, player.y, player.width, player.height);
+            
+            // Рисуем реактивный ранец на спине
+            ctx.fillStyle = '#1E83D4';
+            ctx.fillRect(player.x + 15, player.y + 48, 10, 12);
+            
+            // Рисуем огонь из реактивного ранца если он активен
+            if (player.jetpackActive || player.boosterActive) {
+                ctx.fillStyle = player.boosterActive ? '#FFCC00' : '#FF4500';
+                ctx.beginPath();
+                ctx.moveTo(player.x + 15, player.y + 60);
+                ctx.lineTo(player.x + 20, player.y + 70);
+                ctx.lineTo(player.x + 25, player.y + 60);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+        
+        // Рисуем звезды на фоне
+        function drawStars() {
+            ctx.fillStyle = 'white';
+            
+            // Статичные звезды
+            const starOffset = scrollOffset * 0.1;
+            
+            for (let i = 0; i < 50; i++) {
+                // Создаем звезды с разной яркостью
+                const alpha = 0.3 + Math.random() * 0.7;
+                ctx.globalAlpha = alpha;
+                
+                const x = (i * 13) % canvas.width;
+                const y = (i * 7 + starOffset) % canvas.height;
+                const size = Math.random() * 2;
+                
+                ctx.fillRect(x, y, size, size);
+                
+                // Мерцание звезд
+                if (Math.random() < 0.05) {
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.fillRect(x, y, size + 1, size + 1);
+                    ctx.fillStyle = 'white';
+                }
+            }
+            
+            ctx.globalAlpha = 1.0;
+        }
+        
+        // Конец игры
+        function gameOver() {
+            gameRunning = false;
+            finalScoreElement.textContent = score;
+            finalHighScoreElement.textContent = highScore;
+            gameOverScreen.style.display = 'block';
+        }
+        
+        // Перезапуск игры
+        function restartGame() {
+            player = {
+                x: canvas.width / 2 - 20,
+                y: canvas.height - 100,
+                width: 40,
+                height: 60,
+                velocityX: 0,
+                velocityY: 0,
+                jumping: false,
+                color: '#3498db',
+                jetpackActive: false,
+                jetpackFuel: 100,
+                boosterActive: false,
+                boosterTime: 0
+            };
+            
+            score = 0;
+            scrollOffset = 0;
+            scoreElement.textContent = score;
+            gameRunning = true;
+            gameOverScreen.style.display = 'none';
+            powerupIndicator.style.display = 'none';
+            fuelBar.style.width = '100%';
+            
+            createBuildings();
+        }
+        
+        // Игровой цикл
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Инициализация игры
+        function init() {
+            createBuildings();
+            gameLoop();
+            
+            // Обработчик кнопки рестарта
+            restartBtn.addEventListener('click', restartGame);
+            
+            // Обработчик для рестарта по нажатию пробела
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Enter' && !gameRunning) {
+                    restartGame();
+                }
+            });
+        }
+        
+        // Запускаем игру
+        init();
+    </script>
+</body>
+  </html>
